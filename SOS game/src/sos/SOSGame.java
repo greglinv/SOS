@@ -26,10 +26,11 @@ public class SOSGame extends JFrame {
 	private boolean player2RadioButtonSisSelected = true;
 	private JLabel turnLabel;
 	private JLabel modeLabel;
+	private JTextField boardSizeField;
+	private JButton applyBoardSizeButton;
 
-//Create the Board with set size
-	public SOSGame(int boardSize) {
-		this.boardSize = boardSize;
+	public SOSGame() {
+		this.boardSize = 3; // Default board size is 3x3
 		this.board = new char[boardSize][boardSize];
 		this.player1Turn = true;
 		this.buttons = new JButton[boardSize][boardSize];
@@ -58,14 +59,14 @@ public class SOSGame extends JFrame {
 		player1RadioButtonO = new JRadioButton("O");
 		player2RadioButtonS = new JRadioButton("S", true);
 		player2RadioButtonO = new JRadioButton("O");
-//Button Groups
+		//Button Groups
 		ButtonGroup player1ButtonGroup = new ButtonGroup();
 		ButtonGroup player2ButtonGroup = new ButtonGroup();
 		player1ButtonGroup.add(player1RadioButtonS);
 		player1ButtonGroup.add(player1RadioButtonO);
 		player2ButtonGroup.add(player2RadioButtonS);
 		player2ButtonGroup.add(player2RadioButtonO);
-//Player Labels and Buttons
+		//Player Labels and Buttons
 		playerPanel.add(player1Label);
 		playerPanel.add(player1RadioButtonS);
 		playerPanel.add(player1RadioButtonO);
@@ -114,7 +115,7 @@ public class SOSGame extends JFrame {
 		simpleModeRadioButton.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent e) {
-// Update the boolean variable based on the radio button's state
+				// Update the boolean variable based on the radio button's state
 				simpleModeButtonisSelected = (e.getStateChange() == ItemEvent.SELECTED);
 				updateModeLabel(modeLabel);
 			}
@@ -132,7 +133,7 @@ public class SOSGame extends JFrame {
 			}
 		});
 		add(boardPanel, BorderLayout.CENTER);
-// Game mode selection
+		// Game mode selection
 		JPanel modePanel = new JPanel(new GridLayout(2, 1));
 		ButtonGroup modeButtonGroup = new ButtonGroup();
 		modeButtonGroup.add(simpleModeRadioButton);
@@ -140,17 +141,66 @@ public class SOSGame extends JFrame {
 		modePanel.add(simpleModeRadioButton);
 		modePanel.add(complexModeRadioButton);
 		add(modePanel, BorderLayout.EAST);
-//Set and Display Mode Label
+		//Set and Display Mode Label
 		modeLabel = new JLabel("Simple Mode");
 		modeLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		modeLabel.setFont(new Font("Arial", Font.BOLD, 16));
 		add(modeLabel, BorderLayout.SOUTH);
-// Turn indicator label
+		// Turn indicator label
 		turnLabel = new JLabel("Player 1's Turn");
 		turnLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		turnLabel.setFont(new Font("Arial", Font.BOLD, 16));
 		add(turnLabel, BorderLayout.NORTH);
 		setVisible(true);
+
+		// Add a JTextField for changing the board size
+		boardSizeField = new JTextField(5);
+		applyBoardSizeButton = new JButton("Apply Size");
+		applyBoardSizeButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					int newSize = Integer.parseInt(boardSizeField.getText());
+					if (newSize > 3) {
+						setBoardSize(newSize);
+						initializeBoard();
+						recreateBoard();
+					} else {
+						// Handle invalid board size (less than or equal to 3)
+						JOptionPane.showMessageDialog(SOSGame.this, "Board size must be larger than 3x3.");
+					}
+				} catch (NumberFormatException ex) {
+					// Handle invalid input (non-integer)
+					JOptionPane.showMessageDialog(SOSGame.this, "Invalid input. Please enter a valid integer.");
+				}
+			}
+		});
+
+		// Add components for changing board size
+		JPanel boardSizePanel = new JPanel();
+		boardSizePanel.add(new JLabel("Size:"));
+		boardSizePanel.add(boardSizeField);
+		boardSizePanel.add(applyBoardSizeButton);
+
+		// Add the board size input panel to the UI
+		add(boardSizePanel, BorderLayout.NORTH);
+	}
+
+	private void setBoardSize(int newSize) {
+	    this.boardSize = newSize;
+	    this.board = new char[boardSize][boardSize];
+	    this.buttons = new JButton[boardSize][boardSize]; // Recreate buttons array
+	}
+
+	private void recreateBoard() {
+		// Remove the old board panel
+		getContentPane().removeAll();
+
+		// Recreate the UI with the new board size
+		createUI();
+
+		revalidate();
+		repaint();
 	}
 
 	private boolean isGameOver() {
@@ -181,13 +231,13 @@ public class SOSGame extends JFrame {
 	}
 
 //Functions for tests
-public boolean isMoveValid(int row, int col) {
-if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) {
-return false; 
+	public boolean isMoveValid(int row, int col) {
+		if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) {
+			return false;
 // Check if the row and column are within the board bounds
-}
-return board[row][col] == ' ';
-}
+		}
+		return board[row][col] == ' ';
+	}
 
 	public char[][] getBoard() {
 		return board;
