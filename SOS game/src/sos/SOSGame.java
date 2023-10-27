@@ -52,6 +52,8 @@ public class SOSGame extends JFrame {
 		setSize(600, 450);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		setLayout(new BorderLayout());
+		
+		
 		JPanel playerPanel = new JPanel(new GridLayout(2, 2));
 		JLabel player1Label = new JLabel("Player 1:");
 		JLabel player2Label = new JLabel("Player 2:");
@@ -148,8 +150,14 @@ public class SOSGame extends JFrame {
 		add(modeLabel, BorderLayout.SOUTH);
 		// Turn indicator label
 		turnLabel = new JLabel("Player 1's Turn");
-		turnLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		turnLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 		turnLabel.setFont(new Font("Arial", Font.BOLD, 16));
+		
+		// Add the turn label to the top right
+	    JPanel topRightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+	    topRightPanel.add(turnLabel);
+	    add(topRightPanel, BorderLayout.NORTH);
+		
 		add(turnLabel, BorderLayout.NORTH);
 		setVisible(true);
 
