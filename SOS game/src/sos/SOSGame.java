@@ -12,6 +12,10 @@ import javax.swing.JOptionPane;
 
 //Create the Main Game Class
 public class SOSGame extends JFrame {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	private int boardSize;
 	private char[][] board;
 	private boolean player1Turn;
@@ -41,7 +45,8 @@ public class SOSGame extends JFrame {
 
 		// Set simpleMode to true by default
 		this.simpleMode = true;
-
+		
+		
 		initializeBoard();
 		createUI();
 	}
@@ -64,14 +69,12 @@ public class SOSGame extends JFrame {
 		protected char[][] board;
 		protected int boardSize;
 		protected char currentPlayerSymbol;
-		protected boolean player1Turn;
 
 		public SOSGameMode(int boardSize) {
 			this.boardSize = boardSize;
 			this.board = new char[boardSize][boardSize];
 			initializeBoard();
 			currentPlayerSymbol = 'S';
-			player1Turn = true;
 		}
 
 		protected void initializeBoard() {
@@ -83,8 +86,6 @@ public class SOSGame extends JFrame {
 		}
 
 		public abstract void makeMove(int row, int col, char symbol, char[][] board);
-
-		public abstract boolean isGameOver();
 		
 		public abstract boolean checkForSOS(char[][] board);
 
@@ -101,6 +102,7 @@ public class SOSGame extends JFrame {
 	    public SimpleSOSGameMode(int boardSize) {
 	        super(boardSize);
 	        gameEnded = false;
+	        gameWinner = 0;
 	    }
 
 	    public boolean checkForSOS(char[][] board) {
@@ -139,6 +141,8 @@ public class SOSGame extends JFrame {
 
 	        return true;
 	    }
+	    
+
 
 	    @Override
 	    public void makeMove(int row, int col, char symbol, char[][] board) {
@@ -156,12 +160,12 @@ public class SOSGame extends JFrame {
 	            	else {
 	            		gameWinner = 2;
 	            	}
-	            	
 	                announceWinner();
 	            }
 	            else if (isGameOver()) {
 	            	announceWinner();
 	            }
+	            
 	            else {
 	                currentPlayerSymbol = (symbol == 'S') ? 'O' : 'S';
 
@@ -169,31 +173,9 @@ public class SOSGame extends JFrame {
 	                disableButton(row, col);
 	            }
 	        }
-	        
-	        for (int i = 0; i < numRows; i++) {
-	            for (int j = 0; j < numCols; j++) {
-	                char character = board[i][j];
-	                System.out.print(character + " ");
-	            }
-	            System.out.println(); // Move to the next row
-	        }
-	    }
-
-	    @Override
-	    public boolean isGameOver() {
-	    	for (int i = 0; i < boardSize; i++) {
-				for (int j = 0; j < boardSize; j++) {
-					if (board[i][j] == ' ') {
-						return false;
-					}
-				}
-			}
-			return true;
 	    }
 
 	    private void announceWinner() {
-	    	System.out.println("Omega Test");
-	    
 	    	String message;
 	    	if (gameWinner == 1) {
 	    		message = "Player 1 has won the game!";
@@ -210,7 +192,6 @@ public class SOSGame extends JFrame {
 	            for (int j = 0; j < boardSize; j++) {
 	            	disableButton(i, j);
 	            }
-	            System.out.println(); // Move to the next row
 	        }
 	    }
 
@@ -231,12 +212,6 @@ public class SOSGame extends JFrame {
 		public void makeMove(int row, int col, char symbol, char[][] board) {
 			// Implement move logic for General mode
 			// Update the board and switch players
-		}
-
-		@Override
-		public boolean isGameOver() {
-			// Implement game-over logic for General mode
-			return false;
 		}
 
 		@Override
@@ -311,13 +286,7 @@ public class SOSGame extends JFrame {
 		return board;
 	}
 
-	public void togglePlayer() {
-		if (player1Turn) {
-			player1Turn = false;
-		} else if (!player1Turn) {
-			player1Turn = true;
-		}
-	}
+	
 
 	public boolean getCurrentPlayer() {
 		return player1Turn;
@@ -325,6 +294,10 @@ public class SOSGame extends JFrame {
 
 	public boolean isComplexMode() {
 		return !simpleMode;
+	}
+	
+	public void togglePlayer() {
+		player1Turn = !player1Turn;
 	}
 
 	private void createUI() {
@@ -362,6 +335,7 @@ public class SOSGame extends JFrame {
 				final int col = j;
 				buttons[i][j] = new JButton("");
 				buttons[i][j].setFont(new Font("Arial", Font.PLAIN, 24));
+				buttons[i][j].setPreferredSize(new Dimension(100, 100)); 
 				buttons[i][j].addActionListener(new ActionListener() {
 					@Override
 					public void actionPerformed(ActionEvent e) {
@@ -384,8 +358,11 @@ public class SOSGame extends JFrame {
 					        SOSGameMode gameMode = simpleMode ? new SimpleSOSGameMode(boardSize)
 					                : new GeneralSOSGameMode(boardSize);
 					        gameMode.makeMove(row, col, symbol, board);
+					        
+					        
+					        togglePlayer();
+					        
 
-					        player1Turn = !player1Turn;
 					        updateTurnLabel(); // Add this line to update the turn label
 					    }
 					}
@@ -472,6 +449,7 @@ public class SOSGame extends JFrame {
 		boardSizePanel.add(boardSizeField);
 		boardSizePanel.add(newGameButton);
 		boardSizePanel.add(turnLabel);
+
 
 		// Add the board size input panel to the UI
 		add(boardSizePanel, BorderLayout.NORTH);
