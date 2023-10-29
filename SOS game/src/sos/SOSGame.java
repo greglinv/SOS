@@ -4,11 +4,16 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.Color;
+import javax.swing.border.LineBorder;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.function.BooleanSupplier;
 import java.util.ArrayList;
+import java.util.HashSet;
+
 import javax.swing.JOptionPane;
+import java.util.Set;
 
 //Create the Main Game Class
 public class SOSGame extends JFrame {
@@ -34,6 +39,9 @@ public class SOSGame extends JFrame {
 	private JLabel modeLabel;
 	private JTextField boardSizeField;
 	private JButton newGameButton;
+	
+	private Set<String> player1CompletedSequences;
+	private Set<String> player2CompletedSequences;
 
 	public SOSGame() {
 		// Default board size is 3x3
@@ -76,6 +84,25 @@ public class SOSGame extends JFrame {
 			initializeBoard();
 			currentPlayerSymbol = 'S';
 		}
+		
+		public static boolean searchInDirection(char[][] board, int row, int col, String target, int rowDir, int colDir) {
+	        int numRows = board.length;
+	        int numCols = board[0].length;
+	        int targetIndex = 0;
+	        int currentRow = row;
+	        int currentCol = col;
+
+	        while (targetIndex < target.length()) {
+	            if (currentRow < 0 || currentRow >= numRows || currentCol < 0 || currentCol >= numCols || board[currentRow][currentCol] != target.charAt(targetIndex)) {
+	                return false;
+	            }
+	            currentRow += rowDir;
+	            currentCol += colDir;
+	            targetIndex++;
+	        }
+
+	        return true;
+	    }
 
 		protected void initializeBoard() {
 			for (int i = 0; i < boardSize; i++) {
@@ -103,6 +130,8 @@ public class SOSGame extends JFrame {
 	        super(boardSize);
 	        gameEnded = false;
 	        gameWinner = 0;
+	        player1CompletedSequences = new HashSet<>();
+	        player2CompletedSequences = new HashSet<>();
 	    }
 
 	    public boolean checkForSOS(char[][] board) {
@@ -123,30 +152,11 @@ public class SOSGame extends JFrame {
 	        return false;
 	    }
 	    
-	    public static boolean searchInDirection(char[][] board, int row, int col, String target, int rowDir, int colDir) {
-	        int numRows = board.length;
-	        int numCols = board[0].length;
-	        int targetIndex = 0;
-	        int currentRow = row;
-	        int currentCol = col;
-
-	        while (targetIndex < target.length()) {
-	            if (currentRow < 0 || currentRow >= numRows || currentCol < 0 || currentCol >= numCols || board[currentRow][currentCol] != target.charAt(targetIndex)) {
-	                return false;
-	            }
-	            currentRow += rowDir;
-	            currentCol += colDir;
-	            targetIndex++;
-	        }
-
-	        return true;
-	    }
-	    
-
+	 
 
 	    @Override
 	    public void makeMove(int row, int col, char symbol, char[][] board) {
-	    	int numRows = board.length; // Number of rows
+	        int numRows = board.length; // Number of rows
 	        int numCols = board[0].length;
 	        if (!gameEnded && board[row][col] == ' ') {
 	            board[row][col] = symbol;
@@ -154,19 +164,17 @@ public class SOSGame extends JFrame {
 
 	            if (checkForSOS(board)) {
 	                // An SOS sequence is found; declare the winner and end the game
-	            	if(player1Turn) {
-	            		gameWinner = 1;
-	            	}
-	            	else {
-	            		gameWinner = 2;
-	            	}
+	                if (player1Turn) {
+	                    gameWinner = 1;
+	                    player1CompletedSequences.add(row + "," + col);
+	                } else {
+	                    gameWinner = 2;
+	                    player2CompletedSequences.add(row + "," + col);
+	                }
 	                announceWinner();
-	            }
-	            else if (isGameOver()) {
-	            	announceWinner();
-	            }
-	            
-	            else {
+	            } else if (isGameOver()) {
+	                announceWinner();
+	            } else {
 	                currentPlayerSymbol = (symbol == 'S') ? 'O' : 'S';
 
 	                // Disable the button after placing the symbol
@@ -176,12 +184,29 @@ public class SOSGame extends JFrame {
 	    }
 
 	    private void announceWinner() {
+	    	// Change the button color after SOS is completed
+	        if (gameWinner == 1) {
+	            for (String sequence : player1CompletedSequences) {
+	                String[] coords = sequence.split(",");
+	                int row = Integer.parseInt(coords[0]);
+	                int col = Integer.parseInt(coords[1]);
+	                buttons[row][col].setBackground(Color.RED);
+	            }
+	        } else if (gameWinner == 2) {
+	            for (String sequence : player2CompletedSequences) {
+	                String[] coords = sequence.split(",");
+	                int row = Integer.parseInt(coords[0]);
+	                int col = Integer.parseInt(coords[1]);
+	                buttons[row][col].setBackground(Color.BLUE);
+	            }
+	        }
+	    	
 	    	String message;
 	    	if (gameWinner == 1) {
-	    		message = "Player 1 has won the game!";
+	    		message = "Red Player has won the game!";
 	    	}
 	    	else if (gameWinner == 2) {
-	    		message = "Player 2 has won the game!";
+	    		message = "Blue Player has won the game!";
 	    	}
 	    	else {
 	    		message = "Tie Game";
@@ -190,7 +215,28 @@ public class SOSGame extends JFrame {
 	        gameEnded = true;
 	        for (int i = 0; i < boardSize; i++) {
 	            for (int j = 0; j < boardSize; j++) {
-	            	disableButton(i, j);
+	                if (board[i][j] == 'S' || board[i][j] == 'O') {
+	                    buttons[i][j].setText(Character.toString(board[i][j]));
+	                    buttons[i][j].setBorder(new LineBorder(Color.BLACK)); // Add a border for visibility
+	                    buttons[i][j].setEnabled(false);
+	                }
+	            }
+	        }
+
+	        // Change the button color after SOS is completed
+	        if (gameWinner == 1) {
+	            for (String sequence : player1CompletedSequences) {
+	                String[] coords = sequence.split(",");
+	                int row = Integer.parseInt(coords[0]);
+	                int col = Integer.parseInt(coords[1]);
+	                buttons[row][col].setBackground(Color.RED);
+	            }
+	        } else if (gameWinner == 2) {
+	            for (String sequence : player2CompletedSequences) {
+	                String[] coords = sequence.split(",");
+	                int row = Integer.parseInt(coords[0]);
+	                int col = Integer.parseInt(coords[1]);
+	                buttons[row][col].setBackground(Color.BLUE);
 	            }
 	        }
 	    }
@@ -204,29 +250,76 @@ public class SOSGame extends JFrame {
 
 	// Implement General SOS Game Mode
 	class GeneralSOSGameMode extends SOSGameMode {
+		private int player1Score;
+		private int player2Score;
+		private boolean gameEnded;
+		private Set<String> player1CompletedSequences;
+		private Set<String> player2CompletedSequences;
+		
 		public GeneralSOSGameMode(int boardSize) {
-			super(boardSize);
+		    super(boardSize);
+		    player1Score = 0;
+		    player2Score = 0;
 		}
 
 		@Override
 		public void makeMove(int row, int col, char symbol, char[][] board) {
-			// Implement move logic for General mode
-			// Update the board and switch players
+		    int numRows = board.length;
+		    int numCols = board[0].length;
+		    if (!gameEnded && board[row][col] == ' ') {
+		        board[row][col] = symbol;
+		        buttons[row][col].setText(Character.toString(symbol));
+
+		        if (checkForSOS(board)) {
+		            String sequence = row + "," + col; // You can create a unique identifier for the sequence
+		            if (player1Turn) {
+		                if (!player1CompletedSequences.contains(sequence)) {
+		                    player1Score++;
+		                    player1CompletedSequences.add(sequence);
+		                }
+		            } else {
+		                if (!player2CompletedSequences.contains(sequence)) {
+		                    player2Score++;
+		                    player2CompletedSequences.add(sequence);
+		                }
+		            }
+		        }
+
+		        // Continue the game, switching players
+		        currentPlayerSymbol = (symbol == 'S') ? 'O' : 'S';
+		        disableButton(row, col);
+		    }
 		}
 
 		@Override
 		public int getWinner() {
-			// Implement logic to determine the winner in General mode
-			return 0; // Return player 1 or player 2 based on the game outcome
+		    if (player1Score > player2Score) {
+		        return 1; // Player 1 wins
+		    } else if (player2Score > player1Score) {
+		        return 2; // Player 2 wins
+		    } else {
+		        return 0; // It's a draw
+		    }
 		}
 
 		@Override
 		public boolean checkForSOS(char[][] board) {
-			// TODO Auto-generated method stub
-			return false;
-		}
+		    int numRows = board.length;
+		    int numCols = board[0].length;
+		    String target = "SOS";
 
-		// Add other methods specific to General mode
+		    for (int i = 0; i < numRows; i++) {
+		        for (int j = 0; j < numCols; j++) {
+		            if (searchInDirection(board, i, j, target, 0, 1) ||  // Horizontal
+		                searchInDirection(board, i, j, target, 1, 0) ||  // Vertical
+		                searchInDirection(board, i, j, target, 1, 1) ||  // Diagonal (bottom-right)
+		                searchInDirection(board, i, j, target, 1, -1)) {  // Diagonal (bottom-left)
+		                return true;
+		            }
+		        }
+		    }
+		    return false;
+		}
 	}
 
 	private void setBoardSize(int newSize) {
@@ -259,9 +352,9 @@ public class SOSGame extends JFrame {
 
 	private void updateTurnLabel() {
 		if (player1Turn) {
-			turnLabel.setText("Player 1's Turn");
+			turnLabel.setText("Red Player's Turn");
 		} else {
-			turnLabel.setText("Player 2's Turn");
+			turnLabel.setText("Blue Player's Turn");
 		}
 	}
 
@@ -307,8 +400,8 @@ public class SOSGame extends JFrame {
 		setLayout(new BorderLayout());
 
 		JPanel playerPanel = new JPanel(new GridLayout(2, 2));
-		JLabel player1Label = new JLabel("Player 1:");
-		JLabel player2Label = new JLabel("Player 2:");
+		JLabel player1Label = new JLabel("Red Player:");
+		JLabel player2Label = new JLabel("Blue Player:");
 		player1RadioButtonS = new JRadioButton("S", true);
 		player1RadioButtonO = new JRadioButton("O");
 		player2RadioButtonS = new JRadioButton("S", true);
@@ -364,6 +457,9 @@ public class SOSGame extends JFrame {
 					        
 
 					        updateTurnLabel(); // Add this line to update the turn label
+					        
+					        simpleModeRadioButton.setEnabled(false);
+					        complexModeRadioButton.setEnabled(false);
 					    }
 					}
 				});
@@ -412,7 +508,7 @@ public class SOSGame extends JFrame {
 		add(modeLabel, BorderLayout.SOUTH);
 
 		// Turn indicator label
-		turnLabel = new JLabel("Player 1's Turn");
+		turnLabel = new JLabel("Red Player's Turn");
 		turnLabel.setFont(new Font("Arial", Font.BOLD, 16));
 
 		// Add the turn label to the top right
