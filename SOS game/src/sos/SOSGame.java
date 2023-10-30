@@ -25,7 +25,7 @@ public class SOSGame extends JFrame {
 	private char[][] board;
 	private boolean player1Turn;
 	private JButton[][] buttons;
-	private char currentPlayerSymbol;
+	public char currentPlayerSymbol;
 	private JRadioButton player1RadioButtonS;
 	private JRadioButton player1RadioButtonO;
 	private JRadioButton player2RadioButtonS;
@@ -37,8 +37,8 @@ public class SOSGame extends JFrame {
 	private boolean player2RadioButtonSisSelected = true;
 	private JLabel turnLabel;
 	private JLabel modeLabel;
-	private JTextField boardSizeField;
-	private JButton newGameButton;
+	JTextField boardSizeField;
+	JButton newGameButton;
 	
 	private Set<String> player1CompletedSequences;
 	private Set<String> player2CompletedSequences;
@@ -51,14 +51,18 @@ public class SOSGame extends JFrame {
 		this.buttons = new JButton[boardSize][boardSize];
 		this.currentPlayerSymbol = 'S';
 
-		// Set simpleMode to true by default
 		this.simpleMode = true;
 		
 		
 		initializeBoard();
 		createUI();
 	}
+	
+	public SOSGameMode getGameMode() {
+	    return simpleMode ? new SimpleSOSGameMode(boardSize) : new GeneralSOSGameMode(boardSize);
+	}
 
+	//create Board based on board Size
 	private void initializeBoard() {
 		for (int i = 0; i < boardSize; i++) {
 			for (int j = 0; j < boardSize; j++) {
@@ -76,13 +80,11 @@ public class SOSGame extends JFrame {
 	abstract class SOSGameMode {
 		protected char[][] board;
 		protected int boardSize;
-		protected char currentPlayerSymbol;
 
 		public SOSGameMode(int boardSize) {
 			this.boardSize = boardSize;
 			this.board = new char[boardSize][boardSize];
 			initializeBoard();
-			currentPlayerSymbol = 'S';
 		}
 		
 		public static boolean searchInDirection(char[][] board, int row, int col, String target, int rowDir, int colDir) {
@@ -114,11 +116,8 @@ public class SOSGame extends JFrame {
 
 		public abstract void makeMove(int row, int col, char symbol, char[][] board);
 		
-		public abstract boolean checkForSOS(char[][] board);
 
-		public abstract int getWinner(); // For General mode, return the player with the most sequences
-
-		// Add other common methods and attributes as needed
+		public abstract int getWinner();
 	}
 
 	// Implement Simple SOS Game Mode
@@ -134,6 +133,7 @@ public class SOSGame extends JFrame {
 	        player2CompletedSequences = new HashSet<>();
 	    }
 
+	    //Detect SOS sequences
 	    public boolean checkForSOS(char[][] board) {
 	    	int numRows = board.length;
 	        int numCols = board[0].length;
@@ -156,8 +156,6 @@ public class SOSGame extends JFrame {
 
 	    @Override
 	    public void makeMove(int row, int col, char symbol, char[][] board) {
-	        int numRows = board.length; // Number of rows
-	        int numCols = board[0].length;
 	        if (!gameEnded && board[row][col] == ' ') {
 	            board[row][col] = symbol;
 	            buttons[row][col].setText(Character.toString(symbol));
@@ -183,6 +181,7 @@ public class SOSGame extends JFrame {
 	        }
 	    }
 
+	    //When game is finished announce winner
 	    private void announceWinner() {
 	    	// Change the button color after SOS is completed
 	        if (gameWinner == 1) {
@@ -250,77 +249,128 @@ public class SOSGame extends JFrame {
 
 	// Implement General SOS Game Mode
 	class GeneralSOSGameMode extends SOSGameMode {
-		private int player1Score;
-		private int player2Score;
-		private boolean gameEnded;
-		private Set<String> player1CompletedSequences;
-		private Set<String> player2CompletedSequences;
-		
-		public GeneralSOSGameMode(int boardSize) {
-		    super(boardSize);
-		    player1Score = 0;
-		    player2Score = 0;
-		}
+	    int player1Score;
+	    private int player2Score;
+	    private boolean gameEnded;
+	    private Set<String> player1CompletedSequences;
+	    private Set<String> player2CompletedSequences;
+	    private int lastSquareRow;
+	    private int lastSquareCol;
 
-		@Override
-		public void makeMove(int row, int col, char symbol, char[][] board) {
-		    int numRows = board.length;
-		    int numCols = board[0].length;
-		    if (!gameEnded && board[row][col] == ' ') {
-		        board[row][col] = symbol;
-		        buttons[row][col].setText(Character.toString(symbol));
+	    public GeneralSOSGameMode(int boardSize) {
+	        super(boardSize);
+	        player1Score = 0;
+	        player2Score = 0;
+	        player1CompletedSequences = new HashSet<>();
+	        player2CompletedSequences = new HashSet<>();
+	    }
 
-		        if (checkForSOS(board)) {
-		            String sequence = row + "," + col; // You can create a unique identifier for the sequence
-		            if (player1Turn) {
-		                if (!player1CompletedSequences.contains(sequence)) {
-		                    player1Score++;
-		                    player1CompletedSequences.add(sequence);
-		                }
-		            } else {
-		                if (!player2CompletedSequences.contains(sequence)) {
-		                    player2Score++;
-		                    player2CompletedSequences.add(sequence);
-		                }
-		            }
-		        }
+	    @Override
+	    public void makeMove(int row, int col, char symbol, char[][] board) {
+	        if (!gameEnded && board[row][col] == ' ') {
+	            board[row][col] = symbol;
+	            buttons[row][col].setText(Character.toString(symbol));
 
-		        // Continue the game, switching players
-		        currentPlayerSymbol = (symbol == 'S') ? 'O' : 'S';
-		        disableButton(row, col);
-		    }
-		}
+	            boolean sosCompleted = checkForSOS(board);
 
-		@Override
-		public int getWinner() {
-		    if (player1Score > player2Score) {
-		        return 1; // Player 1 wins
-		    } else if (player2Score > player1Score) {
-		        return 2; // Player 2 wins
-		    } else {
-		        return 0; // It's a draw
-		    }
-		}
+	            if (sosCompleted) {
+	                if (player1Turn) {
+	                    player1Score++; // Increment Player 1's score
+	                } else {
+	                    player2Score++; // Increment Player 2's score
+	                }
 
-		@Override
-		public boolean checkForSOS(char[][] board) {
-		    int numRows = board.length;
-		    int numCols = board[0].length;
-		    String target = "SOS";
+	                String sequence = row + "," + col; // Unique identifier for the sequence
+	                if (player1Turn) {
+	                    if (!player1CompletedSequences.contains(sequence)) {
+	                        player1CompletedSequences.add(sequence);
+	                    }
+	                } else {
+	                    if (!player2CompletedSequences.contains(sequence)) {
+	                        player2CompletedSequences.add(sequence);
+	                    }
+	                }
+	                
+	                lastSquareRow = row; // Store the coordinates of the last square
+	                lastSquareCol = col;
+	                updateLastSquareColor(); // Update the color of the last square
+	            }
 
-		    for (int i = 0; i < numRows; i++) {
-		        for (int j = 0; j < numCols; j++) {
-		            if (searchInDirection(board, i, j, target, 0, 1) ||  // Horizontal
-		                searchInDirection(board, i, j, target, 1, 0) ||  // Vertical
-		                searchInDirection(board, i, j, target, 1, 1) ||  // Diagonal (bottom-right)
-		                searchInDirection(board, i, j, target, 1, -1)) {  // Diagonal (bottom-left)
-		                return true;
-		            }
-		        }
-		    }
-		    return false;
-		}
+	            // Continue the game, switching players
+	            currentPlayerSymbol = (symbol == 'S') ? 'O' : 'S';
+	            disableButton(row, col);
+
+	            if (isGameOver()) {
+	                announceWinner();
+	            }
+	        }
+	    }
+
+	    @Override
+	    public int getWinner() {
+	    	System.out.println("Player 1");
+	        System.out.println(player1Score);
+	        System.out.println("Player 2");
+	        System.out.println(player2Score);
+
+	        if (player1Score > player2Score) {
+	            return 1; // Player 1 wins
+	        } else if (player2Score > player1Score) {
+	            return 2; // Player 2 wins
+	        } else {
+	            return 0; // It's a draw
+	        }
+	    }
+
+	    private void announceWinner() {
+	        String message;
+	        if (getWinner() == 1) {
+	            message = "Red Player has won the game!";
+	        } else if (getWinner() == 2) {
+	            message = "Blue Player has won the game!";
+	        } else {
+	            message = "Tie Game";
+	        }
+	        JOptionPane.showMessageDialog(null, message, "Game Over", JOptionPane.INFORMATION_MESSAGE);
+	        gameEnded = true;
+	        for (int i = 0; i < boardSize; i++) {
+	            for (int j = 0; j < boardSize; j++) {
+	                if (board[i][j] == 'S' || board[i][j] == 'O') {
+	                    buttons[i][j].setText(Character.toString(board[i][j]));
+	                    buttons[i][j].setBorder(new LineBorder(Color.BLACK)); // Add a border for visibility
+	                    buttons[i][j].setEnabled(false);
+	                }
+	            }
+	        }
+	    }
+
+	    public boolean checkForSOS(char[][] board) {
+	        int numRows = board.length;
+	        int numCols = board[0].length;
+	        String target = "SOS";
+	        
+	        for (int i = 0; i < numRows; i++) {
+	            for (int j = 0; j < numCols; j++) {
+	                if (searchInDirection(board, i, j, target, 0, 1) ||  // Horizontal
+	                    searchInDirection(board, i, j, target, 1, 0) ||  // Vertical
+	                    searchInDirection(board, i, j, target, 1, 1) ||  // Diagonal (bottom-right)
+	                    searchInDirection(board, i, j, target, 1, -1)) {  // Diagonal (bottom-left)
+	                    return true;
+	                }
+	            }
+	        }
+	        return false;
+	    }
+
+	    private void updateLastSquareColor() {
+	        if (player1Turn) {
+	            buttons[lastSquareRow][lastSquareCol].setBackground(Color.RED);
+	        } else {
+	            buttons[lastSquareRow][lastSquareCol].setBackground(Color.BLUE);
+	        }
+	    }
 	}
+
 
 	private void setBoardSize(int newSize) {
 		this.boardSize = newSize;
@@ -328,15 +378,21 @@ public class SOSGame extends JFrame {
 		this.buttons = new JButton[boardSize][boardSize]; // Recreate buttons array
 	}
 
-	private void recreateBoard() {
+	private void recreateBoard(char currentPlayerSymbol) {
 		// Remove the old board panel
 		getContentPane().removeAll();
+		
+		currentPlayerSymbol = 'S';
 
 		// Recreate the UI with the new board size
 		createUI();
 
 		revalidate();
 		repaint();
+	}
+	
+	public int getBoardSize() {
+	    return boardSize;
 	}
 
 	private boolean isGameOver() {
@@ -362,7 +418,7 @@ public class SOSGame extends JFrame {
 		if (simpleMode) {
 			modeLabel.setText("Simple Mode");
 		} else {
-			modeLabel.setText("Complex Mode");
+			modeLabel.setText("General Mode");
 		}
 	}
 
@@ -433,30 +489,30 @@ public class SOSGame extends JFrame {
 					@Override
 					public void actionPerformed(ActionEvent e) {
 					    if (board[row][col] == ' ' && !isGameOver()) {
-					        char symbol = 'S';
 					        if (player1Turn) {
 					            if (player1RadioButtonSisSelected) {
-					                symbol = 'S';
+					            	currentPlayerSymbol = 'S';
 					            } else {
-					                symbol = 'O';
+					            	currentPlayerSymbol = 'O';
 					            }
 					        } else {
 					            if (player2RadioButtonSisSelected) {
-					                symbol = 'S';
+					            	currentPlayerSymbol = 'S';
 					            } else {
-					                symbol = 'O';
+					            	currentPlayerSymbol = 'O';
 					            }
 					        }
 
 					        SOSGameMode gameMode = simpleMode ? new SimpleSOSGameMode(boardSize)
 					                : new GeneralSOSGameMode(boardSize);
-					        gameMode.makeMove(row, col, symbol, board);
+					        gameMode.makeMove(row, col, currentPlayerSymbol, board);
 					        
 					        
 					        togglePlayer();
 					        
 
 					        updateTurnLabel(); // Add this line to update the turn label
+					        
 					        
 					        simpleModeRadioButton.setEnabled(false);
 					        complexModeRadioButton.setEnabled(false);
@@ -467,7 +523,7 @@ public class SOSGame extends JFrame {
 			}
 		}
 		simpleModeRadioButton = new JRadioButton("Simple Mode", true);
-		complexModeRadioButton = new JRadioButton("Complex Mode");
+		complexModeRadioButton = new JRadioButton("General Mode");
 
 		// Add action listener to Buttons
 		simpleModeRadioButton.addItemListener(new ItemListener() {
@@ -522,12 +578,15 @@ public class SOSGame extends JFrame {
 		newGameButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				currentPlayerSymbol = 'S';
+				player1RadioButtonSisSelected = true;
+				player2RadioButtonSisSelected = true;
 				try {
 					int newSize = Integer.parseInt(boardSizeField.getText());
 					if (newSize > 2) {
 						setBoardSize(newSize);
 						initializeBoard();
-						recreateBoard();
+						recreateBoard(currentPlayerSymbol);
 					} else {
 						// Handle invalid board size (less than or equal to 3)
 						JOptionPane.showMessageDialog(SOSGame.this, "Board size must be larger than 2x2.");
