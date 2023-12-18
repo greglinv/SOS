@@ -63,7 +63,4 @@ public class SimpleSOSGameModeTest {
 		boolean sosDetected = gameMode.checkForSOS(board);
 		assertFalse(sosDetected);
 	}
-
-	
-
 }
