@@ -2,12 +2,10 @@ package sos;
 
 import javax.swing.*;
 
-public class SOSGameMain {
-	static int boardSize;
 
-	public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            new SOSGame();
-        });
-    }
+//Main Class to Launch the Game
+public class SOSGameMain {
+ public static void main(String[] args) {
+     SwingUtilities.invokeLater(SOSGame::new);
+ }
 }
