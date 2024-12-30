@@ -24,6 +24,9 @@ class SOSGame extends JFrame {
     private List<Move> moveList;
     private char currentSymbol; // Tracks whether the player is placing 'S' or 'O'
     private JPanel modePanel; // Panel for selecting game mode
+    private JPanel scorePanel; // Panel for displaying scores
+    private JLabel player1ScoreLabel;
+    private JLabel player2ScoreLabel;
 
     public SOSGame() {
         setTitle("SOS Game");
@@ -91,19 +94,23 @@ class SOSGame extends JFrame {
 
         // Add Game Mode Selection
         JRadioButton simpleModeButton = new JRadioButton("Simple Mode", true);
-        JRadioButton generalModeButton = new JRadioButton("General Mode");
+        JRadioButton advancedModeButton = new JRadioButton("Advanced Mode");
         ButtonGroup modeGroup = new ButtonGroup();
         modeGroup.add(simpleModeButton);
-        modeGroup.add(generalModeButton);
+        modeGroup.add(advancedModeButton);
 
         // Add listeners for game mode selection
-        simpleModeButton.addActionListener(e -> gameMode = new SimpleGameMode(board));
-        generalModeButton.addActionListener(e -> gameMode = new GeneralGameMode(board));
+        simpleModeButton.addActionListener(e -> {
+            gameMode = new SimpleGameMode(board);
+            removeScorePanel();
+            resetScores();
+        });
+        advancedModeButton.addActionListener(e -> gameMode = new AdvancedGameMode(board));
 
         modePanel = new JPanel(new FlowLayout());
         modePanel.add(new JLabel("Game Mode:"));
         modePanel.add(simpleModeButton);
-        modePanel.add(generalModeButton);
+        modePanel.add(advancedModeButton);
         controlPanel.add(modePanel);
 
         controlPanel.add(new JLabel("Symbol:"));
@@ -115,6 +122,33 @@ class SOSGame extends JFrame {
         controlPanel.add(recordGameCheckbox);
 
         add(controlPanel, BorderLayout.SOUTH);
+    }
+
+    private void addScorePanel() {
+        if (scorePanel == null) {
+            scorePanel = new JPanel(new GridLayout(2, 1));
+            player1ScoreLabel = new JLabel(player1.getName() + " Score: 0");
+            player2ScoreLabel = new JLabel(player2.getName() + " Score: 0");
+            scorePanel.add(player1ScoreLabel);
+            scorePanel.add(player2ScoreLabel);
+            add(scorePanel, BorderLayout.EAST);
+            revalidate();
+            repaint();
+        }
+    }
+
+    private void removeScorePanel() {
+        if (scorePanel != null) {
+            remove(scorePanel);
+            scorePanel = null;
+            revalidate();
+            repaint();
+        }
+    }
+
+    private void resetScores() {
+        player1ScoreLabel = null;
+        player2ScoreLabel = null;
     }
 
     // Handle Player Move
@@ -132,8 +166,13 @@ class SOSGame extends JFrame {
         moveList.add(new Move(currentPlayer.getName(), row, col, currentSymbol));
 
         if (checkForSOS()) {
-            endGameWithWinner(currentPlayer);
-            return;
+            if (gameMode instanceof AdvancedGameMode) {
+                currentPlayer.incrementScore();
+                updateScores();
+            } else if (gameMode instanceof SimpleGameMode) {
+                endGameWithWinner(currentPlayer);
+                return;
+            }
         }
 
         if (board.isFull()) {
@@ -143,8 +182,20 @@ class SOSGame extends JFrame {
             updateTurnLabel();
         }
 
+        // Add score panel on first move in advanced mode
+        if (gameMode instanceof AdvancedGameMode && scorePanel == null) {
+            addScorePanel();
+        }
+
         // Disable game mode selection after the first move
         modePanel.setVisible(false);
+    }
+
+    private void updateScores() {
+        if (player1ScoreLabel != null && player2ScoreLabel != null) {
+            player1ScoreLabel.setText(player1.getName() + " Score: " + player1.getScore());
+            player2ScoreLabel.setText(player2.getName() + " Score: " + player2.getScore());
+        }
     }
 
     // Full-Window Scan for SOS detection
@@ -315,11 +366,11 @@ class SimpleGameMode implements GameMode {
     }
 }
 
-// General Game Mode Implementation
-class GeneralGameMode implements GameMode {
+// Advanced Game Mode Implementation
+class AdvancedGameMode implements GameMode {
     private final Board board;
 
-    public GeneralGameMode(Board board) {
+    public AdvancedGameMode(Board board) {
         this.board = board;
     }
 
